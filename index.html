@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>loopthree</title>
+    <title>LoopThree - 3分割BPM同期ビューア</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
@@ -16,7 +16,8 @@
             padding: 40px 20px; 
             margin: 0;
         }
-        h2 { color: #ffffff; font-weight: 700; margin-bottom: 30px; }
+        h2 { color: #ffffff; font-weight: 700; margin-bottom: 5px; }
+        .subtitle { color: #888; font-size: 0.9em; margin-bottom: 30px; }
         .controls { 
             background: #2a2a2a;
             max-width: 600px;
@@ -61,12 +62,15 @@
         button:disabled { background: #444; color: #888; cursor: not-allowed; }
         #canvas-container { margin: 30px auto; max-width: 600px; }
         canvas { background: #000; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
-        .info { font-size: 0.85em; color: #aaa; width: 100%; text-align: center; margin-top: 5px; }
+        .info { font-size: 0.9em; color: #aaa; width: 100%; text-align: center; margin-top: 5px; line-height: 1.6; }
+        .status-match { color: #34c759; font-weight: bold; }
+        .status-loop { color: #ff9500; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>loopthree</h2>
+    <h2>LoopThree</h2>
+    <div class="subtitle">3分割BPM同期ビューア & エクスポーター</div>
     
     <div class="controls">
         <input type="file" id="file-input" multiple accept="image/*">
@@ -97,7 +101,10 @@
         <div class="control-group" style="width: 100%; margin-top: 10px;">
             <button id="start-btn" disabled>動画生成（自動保存）</button>
         </div>
-        <div class="info" id="fps-info">算出FPS: -- / 総フレーム数: --</div>
+        <div class="info" id="fps-info">
+            算出FPS: -- / 総フレーム数: --<br>
+            被りなしに必要な画像数: -- 枚 (現在の選択: 0枚)
+        </div>
     </div>
 
     <div id="canvas-container">
@@ -129,6 +136,38 @@
         let totalFrames = 0;
         let currentFrameCount = 0;
 
+        // 必要枚数を計算して表示を更新する関数
+        function updateRequirements() {
+            const bpm = parseFloat(bpmInput.value) || 120;
+            const noteModifier = parseFloat(noteInput.value);
+            const duration = parseFloat(durationInput.value) || 10;
+            
+            const fps = (bpm / 60) * noteModifier;
+            totalFrames = Math.ceil(fps * duration);
+            
+            // 今回のアルゴリズム上、総フレーム数+2枚あれば画像が一度も被らずに最後まで進行する
+            const requiredImages = totalFrames + 2;
+            
+            let statusText = "";
+            if (images.length > 0) {
+                if (images.length >= requiredImages) {
+                    statusText = ` <span class="status-match">(足りています：画像は余ります)</span>`;
+                } else {
+                    statusText = ` <span class="status-loop">(不足分は頭からループ再生されます)</span>`;
+                }
+            }
+
+            fpsInfo.innerHTML = `
+                算出FPS: ${fps.toFixed(2)} / 総フレーム数: ${totalFrames}<br>
+                被りなしに必要な画像数: <strong>${requiredImages}</strong> 枚 (現在の選択: ${images.length}枚)${statusText}
+            `;
+        }
+
+        // 入力フォームの値が変わったら即座に再計算
+        [bpmInput, noteInput, durationInput].forEach(element => {
+            element.addEventListener('input', updateRequirements);
+        });
+
         fileInput.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             if (files.length < 3) {
@@ -149,6 +188,7 @@
                     loadedCount++;
                     if (loadedCount === files.length) {
                         startBtn.disabled = false;
+                        updateRequirements();
                         alert(`${images.length}枚の画像を読み込みました。準備完了です。`);
                     }
                 };
@@ -160,7 +200,6 @@
             const paneW = canvas.width;
             const bgColor = bgColorInput.value;
 
-            // 背景色の適用
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -225,18 +264,8 @@
         }
 
         startBtn.addEventListener('click', () => {
-            const bpm = parseFloat(bpmInput.value);
-            const noteModifier = parseFloat(noteInput.value);
-            const duration = parseFloat(durationInput.value);
-            
-            // FPSの計算
-            const fps = (bpm / 60) * noteModifier;
-            // 総フレーム数の計算
-            totalFrames = Math.ceil(fps * duration);
-            
-            fpsInfo.textContent = `算出FPS: ${fps.toFixed(2)} / 総フレーム数: ${totalFrames}`;
+            updateRequirements(); // 開始直前に最終フレーム数を確定
 
-            // 変数の初期化
             currentIndex = 0;
             sequenceStep = 0;
             indexTop = 0; 
@@ -245,7 +274,10 @@
             currentFrameCount = 0;
             recordedChunks = [];
 
-            // 録画ストリーム設定
+            const bpm = parseFloat(bpmInput.value);
+            const noteModifier = parseFloat(noteInput.value);
+            const fps = (bpm / 60) * noteModifier;
+
             const stream = canvas.captureStream(fps);
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
             
@@ -258,7 +290,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `output_bpm${bpm}_${duration}s.webm`;
+                a.download = `LoopThree_${bpm}bpm.webm`;
                 a.click();
                 startBtn.disabled = false;
             };
@@ -278,7 +310,6 @@
                     lastTime = timestamp;
                 }
 
-                // 指定した総フレーム数に達したら自動停止
                 if (currentFrameCount >= totalFrames) {
                     cancelAnimationFrame(animationId);
                     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
@@ -292,6 +323,9 @@
             
             animationId = requestAnimationFrame(loop);
         });
+
+        // 初回計算の実行
+        updateRequirements();
     </script>
 </body>
 </html>
