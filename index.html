@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>LoopThree</title>
+    <title>LoopThree - 3分割BPM同期ビューア</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
@@ -36,6 +36,46 @@
             align-items: center;
             gap: 8px;
         }
+        .radio-group-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            margin: 5px 0;
+        }
+        .radio-label {
+            font-size: 0.95em;
+            color: #ccc;
+        }
+        .radio-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .radio-options label {
+            background: #3a3a3a;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .radio-options input[type="radio"] {
+            margin: 0;
+            cursor: pointer;
+        }
+        .radio-options label:hover {
+            background: #4a4a4a;
+        }
+        .radio-options input[type="radio"]:checked + span {
+            color: #007aff;
+            font-weight: bold;
+        }
         .button-group {
             width: 100%;
             display: flex;
@@ -43,7 +83,7 @@
             margin-top: 5px;
         }
         input[type="file"] { font-family: 'M PLUS 1p', sans-serif; }
-        input[type="number"], select, input[type="color"] { 
+        input[type="number"], input[type="color"] { 
             padding: 6px 10px; 
             background: #3a3a3a; 
             color: #fff; 
@@ -89,21 +129,34 @@
             <input type="number" id="bpm-input" value="120" min="20" max="300">
         </div>
         <div class="control-group">
-            <label>タイミング</label>
-            <select id="note-input">
-                <option value="1">4分音符 (1拍ごと)</option>
-                <option value="2" selected>8分音符 (0.5拍ごと)</option>
-                <option value="4">16分音符 (0.25拍ごと)</option>
-                <option value="0.5">2分音符 (2拍ごと)</option>
-            </select>
-        </div>
-        <div class="control-group">
             <label>総再生時間(秒)</label>
             <input type="number" id="duration-input" value="10" min="1" max="300">
         </div>
         <div class="control-group">
             <label>背景色</label>
             <input type="color" id="bg-color" value="#000000">
+        </div>
+
+        <div class="radio-group-container">
+            <div class="radio-label">タイミング</div>
+            <div class="radio-options">
+                <label>
+                    <input type="radio" name="note-radio" value="0.5">
+                    <span>𝅗𝅥</span>
+                </label>
+                <label>
+                    <input type="radio" name="note-radio" value="1">
+                    <span>♩</span>
+                </label>
+                <label>
+                    <input type="radio" name="note-radio" value="2" checked>
+                    <span>♪</span>
+                </label>
+                <label>
+                    <input type="radio" name="note-radio" value="4">
+                    <span>𝅿</span>
+                </label>
+            </div>
         </div>
         
         <div class="button-group">
@@ -116,17 +169,16 @@
         </div>
     </div>
 
-   <div id="canvas-container">
-        <canvas id="viewer-canvas" width="1080" height="1920"></canvas>
+    <div id="canvas-container">
+        <canvas id="viewer-canvas" width="600" height="900"></canvas>
     </div>
-    
+
     <script>
         const fileInput = document.getElementById('file-input');
         const startBtn = document.getElementById('start-btn');
         const canvas = document.getElementById('viewer-canvas');
         const ctx = canvas.getContext('2d');
         const bpmInput = document.getElementById('bpm-input');
-        const noteInput = document.getElementById('note-input');
         const durationInput = document.getElementById('duration-input');
         const bgColorInput = document.getElementById('bg-color');
         const fpsInfo = document.getElementById('fps-info');
@@ -145,9 +197,15 @@
         let totalFrames = 0;
         let currentFrameCount = 0;
 
+        // 選択されているラジオボタンの値を取得する関数
+        function getSelectedNoteModifier() {
+            const checkedRadio = document.querySelector('input[name="note-radio"]:checked');
+            return checkedRadio ? parseFloat(checkedRadio.value) : 2;
+        }
+
         function updateRequirements() {
             const bpm = parseFloat(bpmInput.value) || 120;
-            const noteModifier = parseFloat(noteInput.value);
+            const noteModifier = getSelectedNoteModifier();
             const duration = parseFloat(durationInput.value) || 10;
             
             const fps = (bpm / 60) * noteModifier;
@@ -170,8 +228,14 @@
             `;
         }
 
-        [bpmInput, noteInput, durationInput].forEach(element => {
+        // 入力値変更イベントの設定
+        [bpmInput, durationInput].forEach(element => {
             element.addEventListener('input', updateRequirements);
+        });
+        
+        // ラジオボタンの変更イベントを設定
+        document.querySelectorAll('input[name="note-radio"]').forEach(radio => {
+            radio.addEventListener('change', updateRequirements);
         });
 
         fileInput.addEventListener('change', (e) => {
@@ -280,7 +344,7 @@
             recordedChunks = [];
 
             const bpm = parseFloat(bpmInput.value);
-            const noteModifier = parseFloat(noteInput.value);
+            const noteModifier = getSelectedNoteModifier();
             const fps = (bpm / 60) * noteModifier;
 
             const stream = canvas.captureStream(fps);
