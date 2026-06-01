@@ -70,34 +70,24 @@
             files.sort((a, b) => a.lastModified - b.lastModified);
 
             images = [];
-            let loadedCount = 0;
+          let currentIndex = 0;
+        let sequenceStep = 0; // 切り替えの段階を管理するカウンター
 
-            files.forEach((file) => {
-                const img = new Image();
-                img.src = URL.createObjectURL(file);
-                img.onload = () => {
-                    images.push(img);
-                    loadedCount++;
-                    if (loadedCount === files.length) {
-                        startBtn.disabled = false;
-                        alert(`${images.length}枚の画像を読み込みました。準備完了です。`);
-                    }
-                };
-            });
-        });
+        // 各段（上・中・下）に現在何番目の画像を表示しているかを保持する変数
+        let indexTop = 0;
+        let indexMid = 0;
+        let indexBot = 0;
 
         // 比率維持・中央配置で3分割描画するメインループ
         function drawFrame() {
             const paneH = canvas.height / 3;
             const paneW = canvas.width;
 
-            const img1 = images[currentIndex % images.length];
-            const img2 = images[(currentIndex + 1) % images.length];
-            const img3 = images[(currentIndex + 2) % images.length];
-
+            // キャンバス全体を一度クリア（背景を黒にする）
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // 比率を維持して枠内に収めるためのヘルパー関数
             function drawImageContain(img, offsetY) {
                 const imgRatio = img.width / img.height;
                 const paneRatio = paneW / paneH;
@@ -114,6 +104,57 @@
                     drawX = (paneW - drawW) / 2;
                     drawY = offsetY;
                 }
+                ctx.drawImage(img, drawX, drawY, drawW, drawH);
+            }
+
+            // シーケンス制御（指定されたルールに従ってインデックスを進める）
+            if (sequenceStep === 0) {
+                // 1画目: ①のみ表示（②③には何も描画しない）
+                indexTop = 0;
+                drawImageContain(images[indexTop % images.length], 0);
+                currentIndex = 1; // 次に登場する画像のインデックスを準備
+            } 
+            else if (sequenceStep === 1) {
+                // 2画目: ①②表示
+                indexMid = currentIndex;
+                drawImageContain(images[indexTop % images.length], 0);
+                drawImageContain(images[indexMid % images.length], paneH);
+                currentIndex++;
+            } 
+            else if (sequenceStep === 2) {
+                // 3画目: ①②③表示
+                indexBot = currentIndex;
+                drawImageContain(images[indexTop % images.length], 0);
+                drawImageContain(images[indexMid % images.length], paneH);
+                drawImageContain(images[indexBot % images.length], paneH * 2);
+                currentIndex++;
+            } 
+            else {
+                // 4画目以降: 3つのステップをループ（①変更 → ②変更 → ③変更）
+                const loopPos = (sequenceStep - 3) % 3;
+                
+                if (loopPos === 0) {
+                    // ①の画像が変わって②③そのまま
+                    indexTop = currentIndex;
+                    currentIndex++;
+                } else if (loopPos === 1) {
+                    // ②の画像が変わって①③そのまま
+                    indexMid = currentIndex;
+                    currentIndex++;
+                } else if (loopPos === 2) {
+                    // ③の画像が変わって①②そのまま
+                    indexBot = currentIndex;
+                    currentIndex++;
+                }
+
+                // 現在確定している各段の画像を描画
+                drawImageContain(images[indexTop % images.length], 0);
+                drawImageContain(images[indexMid % images.length], paneH);
+                drawImageContain(images[indexBot % images.length], paneH * 2);
+            }
+
+            sequenceStep++;
+        }
                 ctx.drawImage(img, drawX, drawY, drawW, drawH);
             }
 
@@ -134,7 +175,8 @@
             fpsInfo.textContent = `算出FPS: ${fps.toFixed(2)} (1秒間に${fps.toFixed(1)}回切り替え)`;
 
             currentIndex = 0;
-            recordedChunks = [];
+            sequenceStep = 0; // 追加
+            indexTop = 0; indexMid = 0; indexBot = 0; // 追加
 
             // 録画ストリーム設定
             const stream = canvas.captureStream(fps);
