@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Photo'n'Beat - マルチ分割BPM同期ビューア</title>
+    <title>Photo'n'Beat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
@@ -331,14 +331,14 @@
         }
 
         function updateRequirements() {
-            // 入力値をリアルタイムにチェックして上限・下限を丸める
+            // 入力値をリアルタイムにチェックして上限・下限を確実に丸める
             let bpm = parseFloat(bpmInput.value);
+            if (isNaN(bpm) || bpm < 20) { bpm = 20; bpmInput.value = 20; }
             if (bpm > 300) { bpm = 300; bpmInput.value = 300; }
-            if (bpm < 20) { bpm = 20; }
 
             let duration = parseFloat(durationInput.value);
+            if (isNaN(duration) || duration < 1) { duration = 1; durationInput.value = 1; }
             if (duration > 180) { duration = 180; durationInput.value = 180; }
-            if (duration < 1) { duration = 1; }
 
             const noteModifier = getSelectedNoteModifier();
             const splitCount = getSelectedSplitCount();
@@ -463,7 +463,6 @@
         }
 
         startBtn.addEventListener('click', () => {
-            // 生成開始時にも値を確定してチェックを通す
             updateRequirements();
 
             currentIndex = 0;
