@@ -5,7 +5,7 @@
     <title>Photo'n'Beat - マルチ分割BPM同期ビューア</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&family=Noto+Music&display=swap" rel="stylesheet">
     
     <style>
         body { 
@@ -56,15 +56,17 @@
         }
         .radio-options label {
             background: #3a3a3a;
-            padding: 8px 12px;
+            padding: 4px 14px;
             border-radius: 6px;
             border: 1px solid #555;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
-            min-width: 50px;
+            justify-content: center;
+            min-width: 45px;
+            height: 38px;
             transition: background 0.2s, border-color 0.2s;
+            box-sizing: border-box;
         }
         .radio-options input[type="radio"] {
             margin: 0;
@@ -79,77 +81,19 @@
             border-color: #007aff;
             background: #2f3e50;
         }
-        .radio-options label:has(input[type="radio"]:checked) .note-icon {
-            background-color: #007aff;
+        
+        /* --- Noto Music 専用の文字スタイル --- */
+        .music-note {
+            font-family: 'Noto Music', sans-serif;
+            font-size: 24px; /* 音符の大きさを綺麗にコントロール */
+            color: #fff;
+            line-height: 1;
+            user-select: none;
         }
-        .radio-options label:has(input[type="radio"]:checked) .note-head.note-half {
-            border-color: #007aff;
-        }
-
-        /* --- CSSで作る縮小版音符アイコン（20px四方） --- */
-        .note-icon {
-            position: relative;
-            width: 20px;
-            height: 20px;
-            background-color: transparent;
-        }
-        .note-head {
-            position: absolute;
-            bottom: 1px;
-            left: 1px;
-            width: 9px;
-            height: 7px;
-            border-radius: 50%;
-            transform: rotate(-25deg);
-        }
-        .note-black { background-color: #fff; }
-        .note-half { 
-            background-color: transparent; 
-            border: 1.5px solid #fff; 
-            box-sizing: border-box;
-            width: 10px;
-            height: 8px;
-        }
-        .note-stem {
-            position: absolute;
-            bottom: 4px;
-            left: 8px;
-            width: 1.5px;
-            height: 14px;
-            background-color: #fff;
-        }
-        .note-flag-8 {
-            position: absolute;
-            top: 2px;
-            left: 9px;
-            width: 5px;
-            height: 7px;
-            border-right: 1.5px solid #fff;
-            border-top: 1.5px solid #fff;
-            border-radius: 0 4px 3px 0;
-            transform: skewX(15deg);
-        }
-        .note-flag-16-1 {
-            position: absolute;
-            top: 2px;
-            left: 9px;
-            width: 5px;
-            height: 5px;
-            border-right: 1.5px solid #fff;
-            border-top: 1.5px solid #fff;
-            border-radius: 0 3px 2px 0;
-            transform: skewX(15deg);
-        }
-        .note-flag-16-2 {
-            position: absolute;
-            top: 6px;
-            left: 9px;
-            width: 4px;
-            height: 4px;
-            border-right: 1.5px solid #fff;
-            border-top: 1.5px solid #fff;
-            border-radius: 0 3px 2px 0;
-            transform: skewX(15deg);
+        
+        /* 選択時に音符の文字色を青に変える */
+        .radio-options label:has(input[type="radio"]:checked) .music-note {
+            color: #007aff;
         }
 
         /* 分割数選択用スイッチのスタイル */
@@ -213,6 +157,15 @@
         .info { font-size: 0.9em; color: #aaa; width: 100%; text-align: center; margin-top: 5px; line-height: 1.6; }
         .status-match { color: #34c759; font-weight: bold; }
         .status-loop { color: #ff9500; font-weight: bold; }
+        
+        /* プライバシーポリシーのスタイル */
+        .privacy-policy {
+            font-size: 0.75em; 
+            color: #666; 
+            margin-top: 50px; 
+            text-align: center; 
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -252,35 +205,16 @@
             <div class="radio-options">
                 <label>
                     <input type="radio" name="note-radio" value="0.5">
-                    <div class="note-icon">
-                        <div class="note-head note-half"></div>
-                        <div class="note-stem"></div>
-                    </div>
-                </label>
+                    <span class="music-note">&#x1D15E;</span> </label>
                 <label>
                     <input type="radio" name="note-radio" value="1">
-                    <div class="note-icon">
-                        <div class="note-head note-black"></div>
-                        <div class="note-stem"></div>
-                    </div>
-                </label>
+                    <span class="music-note">&#x1D15F;</span> </label>
                 <label>
                     <input type="radio" name="note-radio" value="2" checked>
-                    <div class="note-icon">
-                        <div class="note-head note-black"></div>
-                        <div class="note-stem"></div>
-                        <div class="note-flag-8"></div>
-                    </div>
-                </label>
+                    <span class="music-note">&#x1D160;</span> </label>
                 <label>
                     <input type="radio" name="note-radio" value="4">
-                    <div class="note-icon">
-                        <div class="note-head note-black"></div>
-                        <div class="note-stem"></div>
-                        <div class="note-flag-16-1"></div>
-                        <div class="note-flag-16-2"></div>
-                    </div>
-                </label>
+                    <span class="music-note">&#x1D161;</span> </label>
             </div>
         </div>
         
@@ -292,13 +226,15 @@
             算出FPS: -- / 総フレーム数: --<br>
             被りなしに必要な画像数: -- 枚 (現在の選択: 0枚)
         </div>
-        <div style="font-size: 0.75em; color: #666;  text-align: center; line-height: 1.5;">
-            本アプリで読み込んだ画像データはすべてブラウザ内で処理され、外部サーバーへ送信・保存されることは一切ありません。
-        </div>
     </div>
 
     <div id="canvas-container">
         <canvas id="viewer-canvas" width="1080" height="1920"></canvas>
+    </div>
+
+    <div class="privacy-policy">
+        【プライバシーポリシー】<br>
+        本アプリで読み込んだ画像データはすべてブラウザ内で処理され、外部サーバーへ送信・保存されることは一切ありません。
     </div>
 
     <script>
@@ -333,7 +269,6 @@
             return checkedRadio ? parseInt(checkedRadio.value) : 3;
         }
 
-        // 入力フォームの値が不正、あるいは上下限を超えているかをチェックしてクレンジングする共通関数
         function validateInputs() {
             let bpm = parseFloat(bpmInput.value);
             if (isNaN(bpm) || bpm < 20) { bpm = 20; bpmInput.value = 20; }
@@ -344,7 +279,6 @@
             if (duration > 180) { duration = 180; durationInput.value = 180; }
         }
 
-        // リアルタイム計算関数（文字入力の邪魔をしないよう、範囲外でもエラーにせずそのまま計算する）
         function updateRequirements() {
             let bpm = parseFloat(bpmInput.value) || 120;
             let duration = parseFloat(durationInput.value) || 10;
@@ -376,10 +310,8 @@
             `;
         }
 
-        // 入力中（タイピング中）はリアルタイムに枚数計算だけ動かす（強制書き換えはしない）
         [bpmInput, durationInput].forEach(element => {
             element.addEventListener('input', updateRequirements);
-            // 入力欄からフォーカスが外れた（確定した）タイミングで上下限補正を実行
             element.addEventListener('blur', () => {
                 validateInputs();
                 updateRequirements();
@@ -477,7 +409,6 @@
         }
 
         startBtn.addEventListener('click', () => {
-            // ボタンが押されたら、未確定の数値も含めて確実に制限内に補正
             validateInputs();
             updateRequirements();
 
