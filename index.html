@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Photo'n'Beat</title>
+    <title>Photo'n'Beat - マルチ分割BPM同期ビューア</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
@@ -330,8 +330,8 @@
             return checkedRadio ? parseInt(checkedRadio.value) : 3;
         }
 
-        function updateRequirements() {
-            // 入力値をリアルタイムにチェックして上限・下限を確実に丸める
+        // 入力フォームの値が不正、あるいは上下限を超えているかをチェックしてクレンジングする共通関数
+        function validateInputs() {
             let bpm = parseFloat(bpmInput.value);
             if (isNaN(bpm) || bpm < 20) { bpm = 20; bpmInput.value = 20; }
             if (bpm > 300) { bpm = 300; bpmInput.value = 300; }
@@ -339,7 +339,12 @@
             let duration = parseFloat(durationInput.value);
             if (isNaN(duration) || duration < 1) { duration = 1; durationInput.value = 1; }
             if (duration > 180) { duration = 180; durationInput.value = 180; }
+        }
 
+        // リアルタイム計算関数（文字入力の邪魔をしないよう、範囲外でもエラーにせずそのまま計算する）
+        function updateRequirements() {
+            let bpm = parseFloat(bpmInput.value) || 120;
+            let duration = parseFloat(durationInput.value) || 10;
             const noteModifier = getSelectedNoteModifier();
             const splitCount = getSelectedSplitCount();
             
@@ -368,8 +373,14 @@
             `;
         }
 
+        // 入力中（タイピング中）はリアルタイムに枚数計算だけ動かす（強制書き換えはしない）
         [bpmInput, durationInput].forEach(element => {
             element.addEventListener('input', updateRequirements);
+            // 入力欄からフォーカスが外れた（確定した）タイミングで上下限補正を実行
+            element.addEventListener('blur', () => {
+                validateInputs();
+                updateRequirements();
+            });
         });
         
         document.querySelectorAll('input[name="note-radio"]').forEach(radio => {
@@ -463,6 +474,8 @@
         }
 
         startBtn.addEventListener('click', () => {
+            // ボタンが押されたら、未確定の数値も含めて確実に制限内に補正
+            validateInputs();
             updateRequirements();
 
             currentIndex = 0;
