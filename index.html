@@ -383,7 +383,8 @@
                         srcImg._meta = {
                             name: file.name,
                             size: file.size,
-                            lastModified: file.lastModified * 10 // ソート用の桁調整
+                            lastModified: file.lastModified * 10,
+                            isSlice: false // スライスフラグ
                         };
                         images.push(srcImg);
                     } else {
@@ -400,11 +401,12 @@
                             const slicedImg = new Image();
                             slicedImg.src = sliceCanvas.toDataURL('image/jpeg', 0.9);
                             
-                            // ★ タイムスタンプに「i」を加算し、確実に「上(0) → 中(1) → 下(2)」の順に並ぶようロック ★
                             slicedImg._meta = {
                                 name: `${file.name}_part${i}`,
                                 size: file.size,
-                                lastModified: (file.lastModified * 10) + i
+                                lastModified: (file.lastModified * 10) + i,
+                                isSlice: true, // スライスフラグ
+                                sliceIndex: i // 何段目のパーツか
                             };
                             
                             images.push(slicedImg);
@@ -470,7 +472,26 @@
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, drawX, drawY, maxW, maxH);
             }
 
-            // ★ グリッドの描画段とスライスパーツの位置を「上から順」に完全同期させるロジック ★
+            // 次に処理する予定の画像パーツ
+            let nextImg = images[currentIndex % images.length];
+
+            // ★パズル同期ロジック★
+            // もし次の画像が「縦写真の分割スライス①（sliceIndex === 0）」だった場合、
+            // 現在の描画ローテーション位置（loopPos）が「上段（0）」になるまでスキップ（帳尻合わせ）する
+            if (sequenceStep >= splitCount && nextImg._meta && nextImg._meta.isSlice && nextImg._meta.sliceIndex === 0) {
+                let currentLoopPos = (sequenceStep - splitCount) % splitCount;
+                if (currentLoopPos !== 0) {
+                    // 上段（0）にたどり着くまでは、現在のグリッド状態を維持して時間を進める（空回し）
+                    for (let i = 0; i < splitCount; i++) {
+                        drawImageWithFullStretch(images[paneIndices[i] % images.length], paneH * i);
+                    }
+                    sequenceStep++;
+                    currentFrameCount++;
+                    return; // 次のフレーム処理へ
+                }
+            }
+
+            // 通常の描画処理
             if (sequenceStep < splitCount) {
                 paneIndices[sequenceStep] = currentIndex;
                 currentIndex++;
@@ -480,7 +501,6 @@
                 }
             } 
             else {
-                // 常に上段(0) → 次の段(1) → の順でローテーションが綺麗に噛み合うように計算
                 const loopPos = (sequenceStep - splitCount) % splitCount;
                 paneIndices[loopPos] = currentIndex;
                 currentIndex++;
